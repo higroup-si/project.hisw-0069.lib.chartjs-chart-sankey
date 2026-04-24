@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4.2.0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://npm.pkg.github.com/
+          scope: '@higroup-si'
+          cache: pnpm
+      - name: Validate semver tag
+        run: |
+          echo "${{ github.event.release.tag_name }}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || \
+          (echo "Tag is not semver (vMAJOR.MINOR.PATCH)" && exit 1)
+      - name: Install
+        run: pnpm install
+      - name: Set version and build
+        run: |
+          pnpm install -g json
+          VERSION=${TAG:1}
+          json -I -f package.json -e "this.version=\"$VERSION\""
+          pnpm run build
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+      - name: Publish to GitHub Packages
+        run: pnpm publish --no-git-checks --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
