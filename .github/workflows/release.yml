@@ -12,7 +12,6 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v4.2.0
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -23,16 +22,16 @@ jobs:
           echo "${{ github.event.release.tag_name }}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || \
           (echo "Tag is not semver (vMAJOR.MINOR.PATCH)" && exit 1)
       - name: Install
-        run: pnpm install
+        run: npm ci
       - name: Set version and build
         run: |
-          pnpm install -g json
+          npm install -g json
           VERSION=${TAG:1}
           json -I -f package.json -e "this.version=\"$VERSION\""
           npm run build
         env:
           TAG: ${{ github.event.release.tag_name }}
       - name: Publish to GitHub Packages
-        run: pnpm publish --no-git-checks --access public
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
